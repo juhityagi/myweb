@@ -1,0 +1,34 @@
+pipeline {
+   agent any
+   
+   environment{
+       PATH = "/usr/local/maven/bin:$PATH"
+   }
+   stages {
+      stage('Git Checkout') {
+         steps {
+            git credentialsId: '45d0284f-aa9a-4398-85d1-2da1dfdf99ef', url: 'https://github.com/juhityagi/myweb.git'
+         }
+      }
+      
+      stage("Maven Build"){
+          steps{
+              sh "mvn clean package"
+              sh "mv target/*.war target/myweb.war"
+          }
+      }
+      
+      stage("develop-dev"){
+        steps{
+            sshagent(['3fa2a2c7-a706-4e1d-9804-d83b3929d2ef']) {
+            sh """
+              scp -o StrictHostKeyChecking=no target/myweb.war centos@13.59.76.183:/usr/local/apache-tomcat/webapps
+              ssh centos@13.59.76.183 /usr/local/apache-tomcat/shutdown.sh
+              ssh centos@13.59.76.183 /usr/local/apache-tomcat/startup.sh
+            """
+            }
+        }   
+      }
+      
+   }
+}
